@@ -26,7 +26,7 @@ cuda = ["khal-std/cuda", "khal/cuda"]
 [dependencies]
 khal-std = { workspace = true }
 # glamx provides UVec3 and other glam types (no_std compatible, used on all targets).
-glamx = { version = "0.2", default-features = false, features = ["nostd-libm", "bytemuck"] }
+glamx = { version = "0.3", default-features = false, features = ["nostd-libm", "bytemuck"] }
 
 [build-dependencies]
 khal-std = { workspace = true }
