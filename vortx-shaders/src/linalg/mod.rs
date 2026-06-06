@@ -6,6 +6,7 @@ pub mod gemm;
 pub mod inv;
 pub mod op_assign;
 pub mod optim;
+pub mod ppo;
 pub mod reduce;
 pub mod repeat;
 pub mod shape;
@@ -16,16 +17,20 @@ pub use shape::{Shapes1, Shapes2, Shapes3};
 
 // Re-export generated ShaderArgs structs (only available on host)
 #[cfg(not(any(target_arch = "spirv", target_arch = "nvptx64")))]
-pub use activation::{GpuTanh, GpuTanhBackward};
+pub use activation::{GpuElu, GpuEluBackward, GpuTanh, GpuTanhBackward};
 #[cfg(not(any(target_arch = "spirv", target_arch = "nvptx64")))]
 pub use contiguous::{Contiguous, ContiguousWithOffset};
-#[cfg(not(target_arch_is_gpu))]
-pub use gemm::{GemmNaive, GemmTiled};
-#[cfg(not(target_arch_is_gpu))]
+#[cfg(not(any(target_arch = "spirv", target_arch = "nvptx64")))]
+pub use gemm::{GemmNaive, GemmTiled, GemmTiledVec4};
+#[cfg(not(any(target_arch = "spirv", target_arch = "nvptx64")))]
 pub use op_assign::{GpuAdd, GpuCopy, GpuCopyWithOffsets, GpuDiv, GpuMul, GpuSub};
 #[cfg(not(any(target_arch = "spirv", target_arch = "nvptx64")))]
 pub use optim::GpuAdam;
 #[cfg(not(any(target_arch = "spirv", target_arch = "nvptx64")))]
+pub use ppo::{GpuPpoActorGrad, GpuPpoValueGrad};
+#[cfg(not(any(target_arch = "spirv", target_arch = "nvptx64")))]
+pub use activation::GpuEluVec4;
+#[cfg(not(any(target_arch = "spirv", target_arch = "nvptx64")))]
 pub use reduce::{ReduceAdd, ReduceMax, ReduceMin, ReduceMul, ReduceSqNorm};
-#[cfg(not(target_arch_is_gpu))]
+#[cfg(not(any(target_arch = "spirv", target_arch = "nvptx64")))]
 pub use repeat::Repeat;
