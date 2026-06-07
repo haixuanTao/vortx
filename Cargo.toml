@@ -57,9 +57,14 @@ khal-builder = "0.2"
 # To build the shader from the dependency instead of local path.
 vortx-shaders = { version = "0.2", path = "./vortx-shaders" }
 
+# Use the local khal 0.2 forks (forward-ported with the cuda-oxide feature) for
+# the shader sub-build (vortx's build.rs invokes cargo-gpu in *this* workspace).
+# The published khal-std 0.2 lacks the `cuda-oxide` feature that nexus-cuda's
+# shader crates reference, so without these patches the shader build fails to
+# resolve `khal-std/cuda-oxide`.
 [patch.crates-io]
-#khal-builder = { path = "../khal/crates/khal-builder" }
-#khal = { path = "../khal/crates/khal" }
-#khal-std = { path = "../khal/crates/khal-std" }
-#khal-derive = { path = "../khal/crates/khal-derive" }
+khal-builder = { path = "../khal-02port/crates/khal-builder" }
+khal = { path = "../khal-02port/crates/khal" }
+khal-std = { path = "../khal-02port/crates/khal-std" }
+khal-derive = { path = "../khal-02port/crates/khal-derive" }
 #glamx = { git = "https://github.com/dimforge/glamx", branch = "bytemuck" }
