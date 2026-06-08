@@ -310,7 +310,11 @@ pub fn reduce_sq_norm(
 }
 
 #[inline]
-fn reduce_workspace_sum(thread_id: usize, stride: usize, workspace: &mut [f32; WORKGROUP_SIZE]) {
+fn reduce_workspace_sum<W: MaybeIndexUnchecked<f32>>(
+    thread_id: usize,
+    stride: usize,
+    workspace: &mut W,
+) {
     if thread_id < stride {
         workspace.write(
             thread_id,
@@ -321,7 +325,11 @@ fn reduce_workspace_sum(thread_id: usize, stride: usize, workspace: &mut [f32; W
 }
 
 #[inline]
-fn reduce_workspace_prod(thread_id: usize, stride: usize, workspace: &mut [f32; WORKGROUP_SIZE]) {
+fn reduce_workspace_prod<W: MaybeIndexUnchecked<f32>>(
+    thread_id: usize,
+    stride: usize,
+    workspace: &mut W,
+) {
     if thread_id < stride {
         workspace.write(
             thread_id,
@@ -332,7 +340,11 @@ fn reduce_workspace_prod(thread_id: usize, stride: usize, workspace: &mut [f32; 
 }
 
 #[inline]
-fn reduce_workspace_min(thread_id: usize, stride: usize, workspace: &mut [f32; WORKGROUP_SIZE]) {
+fn reduce_workspace_min<W: MaybeIndexUnchecked<f32>>(
+    thread_id: usize,
+    stride: usize,
+    workspace: &mut W,
+) {
     if thread_id < stride {
         workspace.write(
             thread_id,
@@ -345,7 +357,11 @@ fn reduce_workspace_min(thread_id: usize, stride: usize, workspace: &mut [f32; W
 }
 
 #[inline]
-fn reduce_workspace_max(thread_id: usize, stride: usize, workspace: &mut [f32; WORKGROUP_SIZE]) {
+fn reduce_workspace_max<W: MaybeIndexUnchecked<f32>>(
+    thread_id: usize,
+    stride: usize,
+    workspace: &mut W,
+) {
     if thread_id < stride {
         workspace.write(
             thread_id,
