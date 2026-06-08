@@ -27,7 +27,7 @@ subgroup_ops = ["khal/subgroup_ops", "vortx-shaders/subgroup_ops"]
 version = "0.1.1"
 
 [workspace.dependencies]
-khal-std = "0.1"
+khal-std = { version = "0.1", default-features = false }
 khal = { version = "0.1", features = ["derive"]}
 
 [dependencies]
