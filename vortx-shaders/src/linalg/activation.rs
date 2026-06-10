@@ -8,7 +8,7 @@ use crate::utils::limits::MAX_NUM_WORKGROUPS;
 use crate::utils::trig::stable_tanh;
 #[cfg(any(target_arch = "spirv", target_arch = "nvptx64"))]
 use khal_std::num_traits::Float;
-use glamx::{UVec3, Vec4};
+use glamx::UVec3;
 use khal_std::{
     index::MaybeIndexUnchecked,
     macros::{spirv, spirv_bindgen},
@@ -73,28 +73,6 @@ pub fn gpu_elu(
         let slot = a.at_mut(ia);
         let x = *slot;
         *slot = if x > 0.0 { x } else { x.exp() - 1.0 };
-    }
-}
-
-/// Element-wise ELU, **vec4** in place: processes 4 contiguous f32 per thread via
-/// 128-bit loads/stores. Assumes a contiguous buffer whose length is a multiple
-/// of 4 (true for the dense activation buffers). The buffer is the same bytes as
-/// the scalar version — only the binding type differs — so it's a drop-in for
-/// contiguous tensors. Memory-bound elementwise kernels win big from the wider
-/// transactions.
-#[spirv_bindgen]
-#[spirv(compute(threads(256, 1, 1)))]
-pub fn gpu_elu_vec4(
-    #[spirv(global_invocation_id)] invocation_id: UVec3,
-    #[spirv(uniform, descriptor_set = 0, binding = 0)] shape_a: &Shape,
-    #[spirv(storage_buffer, descriptor_set = 0, binding = 1)] a: &mut [Vec4],
-) {
-    let n4 = shape_a.len() / 4;
-    for thread_id in (invocation_id.x..n4).step_by(MAX_NUM_THREADS as usize) {
-        let i = thread_id as usize;
-        let v = a.read(i);
-        let e = |x: f32| if x > 0.0 { x } else { x.exp() - 1.0 };
-        *a.at_mut(i) = Vec4::new(e(v.x), e(v.y), e(v.z), e(v.w));
     }
 }
 
