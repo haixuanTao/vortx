@@ -8,6 +8,7 @@ mod optim;
 mod ppo;
 mod reduce;
 mod repeat;
+mod sample;
 
 pub use activation::Activation;
 pub use contiguous::Contiguous;
@@ -17,6 +18,7 @@ pub use optim::{Adam, AdamParams};
 pub use ppo::{Ppo, PpoActorParams, PpoValueParams};
 pub use reduce::{Reduce, ReduceVariant};
 pub use repeat::Repeat;
+pub use sample::{cpu_sample, SampleParams, Sampler};
 
 /// Returns the components of an nalgebra matrix (column-major) as a row-major buffer.
 #[cfg(test)]
