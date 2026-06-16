@@ -19,16 +19,16 @@ push_constants = []
 # When enabled, shaders will use subgroup operations for reductions.
 # When disabled, shaders will use manual reduction via shared memory.
 subgroup_ops = []
+
+# Compile the shaders to PTX via the cuda-oxide backend. Uses khal_std cuda-oxide
+# path (its own nvvm intrinsics; no Rust-CUDA cuda_std).
+cuda-oxide = ["khal-std/cuda-oxide"]
 cpu = ["khal-std/cpu", "khal/cpu"]
 cpu-parallel = ["cpu", "khal-std/cpu-parallel"]
 cuda = ["khal-std/cuda", "khal/cuda"]
-# cuda-oxide: PTX device backend, forwarded from khal-std. nexus-cuda's shader
-# crates reference `vortx-shaders/cuda-oxide`, so the feature must exist here
-# even when (as in the WebGPU benchmark) it is never activated.
-cuda-oxide = ["khal-std/cuda-oxide"]
 
 [dependencies]
-khal-std = { workspace = true }
+khal-std = { workspace = true, default-features = false }
 # glamx provides UVec3 and other glam types (no_std compatible, used on all targets).
 glamx = { version = "0.2", default-features = false, features = ["nostd-libm", "bytemuck"] }
 # Cap glam < 0.33 for the shader build: spirv-std 0.10.0-alpha.1 declares glam ">=0.30.8"

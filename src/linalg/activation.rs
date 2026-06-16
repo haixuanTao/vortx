@@ -2,7 +2,7 @@
 //!
 //! Added for zealot's MLP policy — vortx upstream has no activations.
 
-use crate::shaders::linalg::{GpuElu, GpuEluBackward, GpuEluVec4, GpuTanh, GpuTanhBackward};
+use crate::shaders::linalg::{GpuElu, GpuEluBackward, GpuTanh, GpuTanhBackward};
 use crate::shapes::TensorLayoutBuffers;
 use crate::tensor::{AsTensorMut, AsTensorRef};
 use khal::Shader;
@@ -19,8 +19,6 @@ pub struct Activation {
     pub elu: GpuElu,
     /// In-place ELU backward (`g *= 1 if y > 0 else y + 1`).
     pub elu_backward: GpuEluBackward,
-    /// In-place ELU, vec4 (4 contiguous f32 per thread).
-    pub elu_vec4: GpuEluVec4,
 }
 
 impl Activation {
@@ -94,29 +92,6 @@ impl Activation {
 
         self.elu
             .call(pass, num_threads, &shape_a_buf.as_slice(), &mut buf_a)
-    }
-
-    /// In-place ELU, vec4: 4 contiguous f32 per thread (128-bit transactions).
-    /// Buffer length must be a multiple of 4 and contiguous (dense activations).
-    pub fn elu_vec4(
-        &self,
-        backend: &GpuBackend,
-        shapes: &mut TensorLayoutBuffers,
-        pass: &mut GpuPass,
-        mut a: impl AsTensorMut<f32>,
-    ) -> Result<(), GpuBackendError> {
-        let mut a = a.as_tensor_mut();
-        let shape_a = a.layout().canonicalize();
-        let num_threads = (a.len() / 4) as u32;
-
-        shapes.insert(backend, shape_a)?;
-        let shape_a_buf = shapes.get(shape_a).unwrap();
-        let buf_a = a.buffer_mut();
-        // Same bytes, viewed as vec4 (4 f32 -> 1 Vec4) for 128-bit transactions.
-        let mut buf_v4 = buf_a.reinterpret::<glamx::Vec4>();
-
-        self.elu_vec4
-            .call(pass, num_threads, &shape_a_buf.as_slice(), &mut buf_v4)
     }
 
     /// In-place ELU backward: `g *= 1 if y > 0 else y + 1`, where `y = elu(x)` is
