@@ -27,8 +27,8 @@ subgroup_ops = ["khal/subgroup_ops", "vortx-shaders/subgroup_ops"]
 version = "0.1.1"
 
 [workspace.dependencies]
-khal-std = { version = "0.1", default-features = false }
-khal = { version = "0.1", features = ["derive"]}
+khal-std = { version = "0.2", default-features = false }
+khal = { version = "0.2", features = ["derive"]}
 
 [dependencies]
 bytemuck = "1"
@@ -52,7 +52,7 @@ anyhow = "1"
 wgpu = "29"
 
 [build-dependencies]
-khal-builder = "0.1.1"
+khal-builder = "0.2.0"
 # To build the shader from the dependency instead of local path.
 vortx-shaders = { version = "0.1.1", path = "./vortx-shaders" }
 
