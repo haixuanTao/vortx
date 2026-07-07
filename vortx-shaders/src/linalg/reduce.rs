@@ -367,11 +367,10 @@ pub fn reduce_sq_norm(
 }
 
 #[inline]
-fn reduce_workspace_sum<W: MaybeIndexUnchecked<f32>>(
-    thread_id: usize,
-    stride: usize,
-    workspace: &mut W,
-) {
+fn reduce_workspace_sum<T>(thread_id: usize, stride: usize, workspace: &mut [T; WORKGROUP_SIZE])
+where
+    T: Copy + Add<T, Output = T>,
+{
     if thread_id < stride {
         workspace.write(
             thread_id,
@@ -382,49 +381,14 @@ fn reduce_workspace_sum<W: MaybeIndexUnchecked<f32>>(
 }
 
 #[inline]
-fn reduce_workspace_prod<W: MaybeIndexUnchecked<f32>>(
-    thread_id: usize,
-    stride: usize,
-    workspace: &mut W,
-) {
+fn reduce_workspace_mul<T>(thread_id: usize, stride: usize, workspace: &mut [T; WORKGROUP_SIZE])
+where
+    T: Copy + Mul<T, Output = T>,
+{
     if thread_id < stride {
         workspace.write(
             thread_id,
             workspace.read(thread_id) * workspace.read(thread_id + stride),
-        );
-    }
-    khal_std::sync::workgroup_memory_barrier_with_group_sync();
-}
-
-#[inline]
-fn reduce_workspace_min<W: MaybeIndexUnchecked<f32>>(
-    thread_id: usize,
-    stride: usize,
-    workspace: &mut W,
-) {
-    if thread_id < stride {
-        workspace.write(
-            thread_id,
-            workspace
-                .read(thread_id)
-                .min(workspace.read(thread_id + stride)),
-        );
-    }
-    khal_std::sync::workgroup_memory_barrier_with_group_sync();
-}
-
-#[inline]
-fn reduce_workspace_max<W: MaybeIndexUnchecked<f32>>(
-    thread_id: usize,
-    stride: usize,
-    workspace: &mut W,
-) {
-    if thread_id < stride {
-        workspace.write(
-            thread_id,
-            workspace
-                .read(thread_id)
-                .max(workspace.read(thread_id + stride)),
         );
     }
     khal_std::sync::workgroup_memory_barrier_with_group_sync();
