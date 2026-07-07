@@ -367,18 +367,11 @@ pub fn reduce_sq_norm(
 }
 
 #[inline]
-<<<<<<< HEAD
-fn reduce_workspace_sum<T>(thread_id: usize, stride: usize, workspace: &mut [T; WORKGROUP_SIZE])
-where
-    T: Copy + Add<T, Output = T>,
-{
-=======
 fn reduce_workspace_sum<W: MaybeIndexUnchecked<f32>>(
     thread_id: usize,
     stride: usize,
     workspace: &mut W,
 ) {
->>>>>>> b4ac508 (vortx-shaders/reduce: make reduce_workspace_* generic over the workspace (follow-up to #5))
     if thread_id < stride {
         workspace.write(
             thread_id,
@@ -389,18 +382,11 @@ fn reduce_workspace_sum<W: MaybeIndexUnchecked<f32>>(
 }
 
 #[inline]
-<<<<<<< HEAD
-fn reduce_workspace_mul<T>(thread_id: usize, stride: usize, workspace: &mut [T; WORKGROUP_SIZE])
-where
-    T: Copy + Mul<T, Output = T>,
-{
-=======
 fn reduce_workspace_prod<W: MaybeIndexUnchecked<f32>>(
     thread_id: usize,
     stride: usize,
     workspace: &mut W,
 ) {
->>>>>>> b4ac508 (vortx-shaders/reduce: make reduce_workspace_* generic over the workspace (follow-up to #5))
     if thread_id < stride {
         workspace.write(
             thread_id,
@@ -409,8 +395,6 @@ fn reduce_workspace_prod<W: MaybeIndexUnchecked<f32>>(
     }
     khal_std::sync::workgroup_memory_barrier_with_group_sync();
 }
-<<<<<<< HEAD
-=======
 
 #[inline]
 fn reduce_workspace_min<W: MaybeIndexUnchecked<f32>>(
@@ -445,4 +429,3 @@ fn reduce_workspace_max<W: MaybeIndexUnchecked<f32>>(
     }
     khal_std::sync::workgroup_memory_barrier_with_group_sync();
 }
->>>>>>> b4ac508 (vortx-shaders/reduce: make reduce_workspace_* generic over the workspace (follow-up to #5))
