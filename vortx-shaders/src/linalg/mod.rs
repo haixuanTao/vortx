@@ -4,11 +4,13 @@ pub mod activation;
 pub mod contiguous;
 pub mod gemm;
 pub mod inv;
+pub mod obs;
 pub mod op_assign;
 pub mod optim;
 pub mod ppo;
 pub mod reduce;
 pub mod repeat;
+pub mod reward;
 pub mod sample;
 pub mod shape;
 
@@ -23,6 +25,10 @@ pub use activation::{GpuElu, GpuEluBackward, GpuEluVec4, GpuTanh, GpuTanhBackwar
 pub use contiguous::{Contiguous, ContiguousWithOffset};
 #[cfg(not(target_arch_is_gpu))]
 pub use gemm::{GemmNaive, GemmTiled, GemmTiledVec4};
+#[cfg(not(target_arch_is_gpu))]
+pub use obs::GpuObs;
+#[cfg(not(target_arch_is_gpu))]
+pub use reward::GpuReward;
 #[cfg(not(target_arch_is_gpu))]
 pub use op_assign::{GpuAdd, GpuCopy, GpuCopyWithOffsets, GpuDiv, GpuMul, GpuSub};
 #[cfg(not(target_arch_is_gpu))]
