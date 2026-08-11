@@ -165,3 +165,81 @@ pub fn gpu_ppo_value_grad(
         *g_v.at_mut(m) = params.value_coef * dv * scale;
     }
 }
+
+/// Scalar parameters for the PPO batch staging (uniform; 32 bytes).
+#[repr(C)]
+#[derive(Clone, Copy)]
+#[cfg_attr(
+    not(any(target_arch = "spirv", target_arch = "nvptx64")),
+    derive(bytemuck::Pod, bytemuck::Zeroable)
+)]
+pub struct PpoStageParams {
+    /// Observation dimensionality (rows).
+    pub dim: u32,
+    /// Environments per rollout step.
+    pub n: u32,
+    /// Rollout steps `T` (the raw buffer is step-blocked `[T][dim][n]`).
+    pub steps: u32,
+    /// Total batch columns of `out` (its row stride).
+    pub total_cols: u32,
+    /// First output column this dispatch writes (mirrored/original half).
+    pub col_offset: u32,
+    /// 0 = batch mode (columns cover all `T·n` samples, env-major). Else
+    /// single-step mode: stage only rollout step `step_select - 1` (columns
+    /// = the `n` envs) — the per-step policy-input staging.
+    pub step_select: u32,
+    pub pad1: u32,
+    pub pad2: u32,
+}
+
+/// Build (one half of) the `[dim × total]` row-major PPO batch directly from
+/// step-blocked RAW rollout observations, applying the signed-perm mirror,
+/// the normalizer affine and the ±5 clamp in one dispatch.
+///
+/// The mirror arrives as an explicit signed permutation (`perm`/`sign`, with
+/// identity tables for the un-mirrored half) rather than re-implemented index
+/// maths, so it cannot drift from the caller's definition. Normalization
+/// happens HERE, not before: the mirror is defined on raw obs
+/// (`normalize ∘ mirror`) and the clamp is lossy, so a mirror derived from
+/// already-normalized values is wrong for every saturated feature.
+///
+/// Batch columns are env-major (`col = e·T + t`, matching the trainer's
+/// sample flatten order); the raw buffer is step-blocked, so
+/// `raw[(t·dim + perm[d])·n + e]`. Dispatch `[T·n, dim, 1]` threads.
+#[spirv_bindgen]
+#[spirv(compute(threads(256, 1, 1)))]
+pub fn gpu_ppo_stage_batch(
+    #[spirv(global_invocation_id)] invocation_id: UVec3,
+    #[spirv(uniform, descriptor_set = 0, binding = 0)] params: &PpoStageParams,
+    #[spirv(storage_buffer, descriptor_set = 0, binding = 1)] raw: &[f32],
+    #[spirv(storage_buffer, descriptor_set = 0, binding = 2)] mean: &[f32],
+    #[spirv(storage_buffer, descriptor_set = 0, binding = 3)] inv_std: &[f32],
+    #[spirv(storage_buffer, descriptor_set = 0, binding = 4)] perm: &[u32],
+    #[spirv(storage_buffer, descriptor_set = 0, binding = 5)] sign: &[f32],
+    #[spirv(storage_buffer, descriptor_set = 0, binding = 6)] out: &mut [f32],
+) {
+    let x = invocation_id.x;
+    let d = invocation_id.y;
+    let cols = if params.step_select != 0 {
+        params.n
+    } else {
+        params.steps * params.n
+    };
+    if x >= cols || d >= params.dim {
+        return;
+    }
+    let (t, e) = if params.step_select != 0 {
+        (params.step_select - 1, x)
+    } else {
+        (x % params.steps, x / params.steps)
+    };
+    let src_d = perm.read(d as usize);
+    let v = raw.read(((t * params.dim + src_d) * params.n + e) as usize) * sign.read(d as usize);
+    let v = ((v - mean.read(d as usize)) * inv_std.read(d as usize))
+        .max(-5.0)
+        .min(5.0);
+    out.write(
+        (d * params.total_cols + params.col_offset + x) as usize,
+        v,
+    );
+}

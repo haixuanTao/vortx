@@ -5,13 +5,15 @@
 //! uniform — dimensions ride in the params struct and indexing is row-major — so
 //! no `TensorLayoutBuffers` is needed.
 
-use crate::shaders::linalg::{GpuPpoActorGrad, GpuPpoValueGrad};
+use crate::shaders::linalg::GpuPpoActorGrad;
+use crate::shaders::linalg::GpuPpoValueGrad;
+use crate::shaders::linalg::ppo::GpuPpoStageBatch;
 use crate::tensor::{AsTensorMut, AsTensorRef};
 use khal::Shader;
 use khal::backend::{GpuBackend, GpuBackendError, GpuPass};
 
 // Re-export the params structs from the shader crate.
-pub use vortx_shaders::linalg::ppo::{PpoActorParams, PpoValueParams};
+pub use vortx_shaders::linalg::ppo::{PpoActorParams, PpoStageParams, PpoValueParams};
 
 /// PPO loss-gradient kernels.
 #[derive(Shader)]
@@ -20,6 +22,9 @@ pub struct Ppo {
     pub actor_grad: GpuPpoActorGrad,
     /// Clipped value-loss gradient.
     pub value_grad: GpuPpoValueGrad,
+    /// Batch staging: raw step-blocked obs -> normalized/clamped/mirrored
+    /// `[dim x total]` batch, on device.
+    pub stage_batch: GpuPpoStageBatch,
 }
 
 impl Ppo {
@@ -94,6 +99,46 @@ impl Ppo {
             &value_old.buffer(),
             &ret.buffer(),
             &mut buf_g_v,
+        )
+    }
+
+    /// Stage (one half of) the PPO batch on device: read the step-blocked RAW
+    /// rollout obs, apply the signed-perm mirror + normalizer affine + ±5
+    /// clamp, and write row-major `[dim x total]` columns starting at
+    /// `params.col_offset`. See `gpu_ppo_stage_batch` for the layout contract.
+    #[allow(clippy::too_many_arguments)]
+    pub fn stage_batch(
+        &self,
+        pass: &mut GpuPass,
+        params: impl AsTensorRef<PpoStageParams>,
+        raw: impl AsTensorRef<f32>,
+        mean: impl AsTensorRef<f32>,
+        inv_std: impl AsTensorRef<f32>,
+        perm: impl AsTensorRef<u32>,
+        sign: impl AsTensorRef<f32>,
+        mut out: impl AsTensorMut<f32>,
+        cols: u32,
+        dim: u32,
+    ) -> Result<(), GpuBackendError> {
+        let params = params.as_tensor_ref();
+        let raw = raw.as_tensor_ref();
+        let mean = mean.as_tensor_ref();
+        let inv_std = inv_std.as_tensor_ref();
+        let perm = perm.as_tensor_ref();
+        let sign = sign.as_tensor_ref();
+        let mut out = out.as_tensor_mut();
+        let mut buf_out = out.buffer_mut();
+
+        self.stage_batch.call(
+            pass,
+            [cols, dim, 1],
+            &params.buffer(),
+            &raw.buffer(),
+            &mean.buffer(),
+            &inv_std.buffer(),
+            &perm.buffer(),
+            &sign.buffer(),
+            &mut buf_out,
         )
     }
 }
