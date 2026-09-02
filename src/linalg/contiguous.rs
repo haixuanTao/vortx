@@ -51,7 +51,11 @@ impl Contiguous {
         tensor_shape = tensor_shape.canonicalize();
         // println!("Tensor shape (canon): {:?}", tensor_shape);
 
-        let num_threads = tensor_shape.len() as u32;
+        // The kernel strides by MAX_NUM_THREADS, so clamp the launch to it —
+        // WebGPU caps the workgroup grid at 65535 per dimension (a ~9.7M-element
+        // tensor at 4096 envs blew past it; CUDA's huge x-limit hid the bug).
+        let num_threads = (tensor_shape.len() as u32)
+            .min(crate::shaders::utils::limits::MAX_NUM_WORKGROUPS * 128);
 
         if let Some(offset) = offset {
             #[cfg(not(feature = "push_constants"))]
